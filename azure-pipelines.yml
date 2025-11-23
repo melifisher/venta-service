@@ -41,7 +41,7 @@ steps:
   - task: Docker@2
     displayName: 'docker build'
     inputs:
-      containerRegistry: 'dockerhub-fisher'
+      containerRegistry: 'container-venta'
       command: 'build'
       repository: 'melissafv/venta-service'
       Dockerfile: 'dockerfile'
@@ -58,7 +58,7 @@ steps:
     displayName: 'docker push'
     condition: succeeded()   # If previous steps fail, push is skipped
     inputs:
-      containerRegistry: 'dockerhub-fisher'
+      containerRegistry: 'container-venta'
       command: 'push'
       repository: 'melissafv/venta-service'
       tags: 'latest'
