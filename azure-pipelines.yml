@@ -3,20 +3,69 @@ pool:
   demands: npm
 
 steps:
-  - task: Npm@1
-    displayName: 'npm install'
-    inputs:
-      verbose: false
+  # Install Grype
+  - script: |
+      echo "Installing Grype..."
+      curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+      grype --version
+    displayName: 'Install Grype'
 
+  # Validate project dependencies (Node / NestJS)
+  - script: |
+      echo "Scanning source code and dependencies..."
+      grype dir:.
+    displayName: 'Grype Scan - Source Code'
+
+  # OPTIONAL: Validate Dockerfile syntax (recommended)
+  # Remove comment lines if you want Dockerfile linting
+  # - script: |
+  #     echo "Installing hadolint..."
+  #     wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+  #     chmod +x /usr/local/bin/hadolint
+  #     hadolint dockerfile
+  #   displayName: 'Dockerfile Lint (Hadolint)'
+
+  # Install node dependencies
+  # - task: Npm@1
+  #   displayName: 'npm install'
+  #   inputs:
+  #     verbose: false
+
+  # Pre-build scan of Dockerfile context using grype dir
+  - script: |
+      echo "Scanning build context before image creation..."
+      grype dir:.
+    displayName: 'Grype Scan - Pre-Build Docker Context'
+
+  # Build Docker image (do NOT push yet)
+  - task: Docker@2
+    displayName: 'docker build'
+    inputs:
+      containerRegistry: 'dockerhub-fisher'
+      command: 'build'
+      repository: 'melissafv/venta-service'
+      Dockerfile: 'dockerfile'
+      tags: 'latest'
+
+  # Grype scan of built image BEFORE pushing
+  - script: |
+      echo "Scanning built Docker image..."
+      grype melissafv/venta-service:latest
+    displayName: 'Grype Scan - Docker Image'
+
+  # Only if scan passed → push image
+  - task: Docker@2
+    displayName: 'docker push'
+    condition: succeeded()   # If previous steps fail, push is skipped
+    inputs:
+      containerRegistry: 'dockerhub-fisher'
+      command: 'push'
+      repository: 'melissafv/venta-service'
+      tags: 'latest'
+
+  # Archive + Publish artifacts (optional)
   - task: ArchiveFiles@2
     displayName: 'Archive Files'
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: drop'
-
-  - task: Docker@2
-    displayName: 'docker build&push'
-    inputs:
-      containerRegistry: 'dockerhub-fisher'
-      repository: 'melissafv/venta-service'
-      Dockerfile: dockerfile
