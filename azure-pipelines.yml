@@ -26,10 +26,10 @@ steps:
   #   displayName: 'Dockerfile Lint (Hadolint)'
 
   # Install node dependencies
-  # - task: Npm@1
-  #   displayName: 'npm install'
-  #   inputs:
-  #     verbose: false
+  - task: Npm@1
+    displayName: 'npm install'
+    inputs:
+      verbose: false
 
   # Pre-build scan of Dockerfile context using grype dir
   - script: |
